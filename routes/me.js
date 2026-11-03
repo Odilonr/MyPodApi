@@ -2,6 +2,7 @@ import express from 'express'
 import { recentController, favoritesController, addFavoriteController, removeFavoriteController,
   playlistsController, createPlaylistController, playlistController, deletePlaylistController,
   addPlaylistEpisodeController, removePlaylistEpisodeController } from '../controllers/libraryController.js'
+import { getLayoutController, saveLayoutController } from '../controllers/layoutController.js'
 import { asynHandler } from '../middleware/errorHandler.js'
 import { verifyJWT } from '../middleware/verifyJWT.js'
 import { validateId } from '../middleware/validateId.js'
@@ -11,6 +12,9 @@ const router = express.Router()
 router.use(verifyJWT)
 router.param('id', validateId)
 router.param('episodeId', validateId)
+
+router.get('/layout', asynHandler(getLayoutController))
+router.put('/layout', asynHandler(saveLayoutController))
 
 router.get('/recent', asynHandler(recentController))
 
