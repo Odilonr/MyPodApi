@@ -20,7 +20,7 @@ router.delete('/:id', adminOnly, asynHandler(deleteEpisodeController))
 
 router.get('/ep/:id', asynHandler(getEpisodeController))
 
-router.get('/audio', asynHandler(audioEpController))
+router.get('/:id/audio', asynHandler(audioEpController))
 router.get('/:id/timestamp', verifyJWT, asynHandler(getCurrentPlayTime))
 router.post('/updatetime', verifyJWT, asynHandler(updateCurrentEpTime))
 

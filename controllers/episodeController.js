@@ -4,7 +4,7 @@ import { getEpisodes, getEpByTitleShowId , getEpisodeById, addEpisode, updateEpi
 import { getCurrentTime, startEpTime, updateCurrentTime } from "../queries/episodeProgress.js"
 import createError from "http-errors"
 import { validate as isUuid } from 'uuid'
-import fs from 'fs'
+import fsPromises from 'fs/promises'
 import path from 'path'
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -110,40 +110,40 @@ async function updateCurrentEpTime (req, res) {
   res.json({'message': 'Updated Timestamp Succesfully'})
 }
 
-async function audioEpController (req, res) {
-  const audioPath = req.query.path
+// Returns the file's path inside the audio folder, or null if it is missing
+// or would leave that folder. realpath also follows any symbolic links.
+async function findAudioFile (audioLink) {
+  try {
+    const audioRoot = await fsPromises.realpath(path.resolve(__dirname, '..', process.env.AUDIO_DIR || 'audios'))
+    const filePath = await fsPromises.realpath(path.resolve(audioRoot, audioLink.replace(/^audios[\\/]/, '')))
+    const relativePath = path.relative(audioRoot, filePath)
+    if (!relativePath || relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+      return null
+    }
+    const fileInfo = await fsPromises.stat(filePath)
+    return fileInfo.isFile() ? { audioRoot, relativePath } : null
+  } catch (err) {
+    return null
+  }
+}
 
-  if (!fs.existsSync(path.join(__dirname, '..', audioPath))) {
-    res.status(404).json({'message': 'no audio found'})
+async function audioEpController (req, res, next) {
+  const episode = await getEpisodeById(req.params.id)
+  if (!episode) {
+    throw createError(404, 'Episode not found')
+  }
+
+  const audioFile = await findAudioFile(episode.audio_link)
+  if (!audioFile) {
     throw createError(404, 'Audio not found')
   }
 
-  const audioInfo = fs.statSync(audioPath)
-  const audioSize = audioInfo.size
-  if (req.headers.range) {
-    const range = req.headers.range
-    const parts = range.replace('bytes=', '').split("-")
-    console.log(parts)
-    const partialStart = parts[0]
-    const partialEnd = parts[1]
-
-    const start = parseInt(partialStart, 10)
-    console.log(start)
-    const end = partialEnd ? parseInt(partialEnd, 10) : audioSize - 1;
-    console.log(end)
-    const chunkSize = (end-start)+1
-    const readstream = fs.createReadStream(audioPath, {start: start, end: end})
-    res.writeHead(206, {
-      'Content-Range': 'bytes ' + start + '-' + end + '/' + audioSize,
-      'Accept-Ranges': 'bytes', 
-      'Content-Length': chunkSize, 
-      'Content-Type': 'audio/mpeg'
-    })
-    readstream.pipe(res)
-  } else {
-    res.writeHead(200, {'Content-Length': audioSize, 'Content-Type' : 'audio/mpeg'})
-    fs.createReadStream(audioPath).pipe(res)
-  }
+  // sendFile handles byte ranges, content type and stream errors.
+  res.sendFile(audioFile.relativePath.split(path.sep).join('/'), { root: audioFile.audioRoot }, (err) => {
+    if (err && !res.headersSent) {
+      next(err)
+    }
+  })
 }
 
 
