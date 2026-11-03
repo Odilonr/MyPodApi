@@ -1,9 +1,5 @@
-import path from 'path'
-import { fileURLToPath } from 'url'
-import { seedSampleData } from './sampleData.js'
+import { syncCatalog } from '../services/catalogSync.js'
 
-const apiRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
-
-await seedSampleData(path.resolve(apiRoot, process.env.AUDIO_DIR || 'audios'))
-console.log('Sample shows and episodes are ready')
+const { synced, failed, added } = await syncCatalog()
+console.log(`Catalog: ${synced} shows up to date, ${added} new episodes, ${failed.length} feeds failed`)
 process.exit(0)

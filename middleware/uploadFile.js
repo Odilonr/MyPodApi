@@ -13,6 +13,14 @@ const storage = multer.diskStorage({
   filename: (req, file, callback) => callback(null, uuidv4())
 })
 
+// Uploads stay off unless turned on, so strangers can't fill a public server.
+function requireUploadsEnabled (req, res, next) {
+  if (process.env.UPLOADS_ENABLED !== 'true') {
+    return next(createError(404, 'Uploads are turned off'))
+  }
+  next()
+}
+
 function uploadFile (req, res, next) {
   const receive = multer({ storage, limits: { fileSize: maxUploadBytes(), files: 1, fields: 0, parts: 1 } }).single('file')
   receive(req, res, (err) => {
@@ -25,4 +33,4 @@ function uploadFile (req, res, next) {
   })
 }
 
-export { uploadFile }
+export { requireUploadsEnabled, uploadFile }

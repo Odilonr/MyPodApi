@@ -16,6 +16,7 @@ let admin
 beforeAll(() => {
   uploadDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mypod-uploads-'))
   process.env.UPLOAD_DIR = uploadDir
+  process.env.UPLOADS_ENABLED = 'true'
   process.env.MAX_UPLOAD_BYTES = String(200000)
   process.env.MAX_USER_STORAGE_BYTES = String(300000)
 })
@@ -23,6 +24,7 @@ beforeAll(() => {
 afterAll(() => {
   fs.rmSync(uploadDir, { recursive: true, force: true })
   delete process.env.UPLOAD_DIR
+  delete process.env.UPLOADS_ENABLED
   delete process.env.MAX_UPLOAD_BYTES
   delete process.env.MAX_USER_STORAGE_BYTES
 })

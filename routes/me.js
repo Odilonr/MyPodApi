@@ -8,7 +8,7 @@ import { previewFeedController, importFeedController, listFeedsController, editF
 import { checkStorageRoom, uploadController, editUploadController, deleteUploadController,
   streamUrlController } from '../controllers/uploadController.js'
 import { asynHandler } from '../middleware/errorHandler.js'
-import { uploadFile } from '../middleware/uploadFile.js'
+import { requireUploadsEnabled, uploadFile } from '../middleware/uploadFile.js'
 import { feedLimiter, uploadLimiter } from '../middleware/rateLimiters.js'
 import { verifyJWT } from '../middleware/verifyJWT.js'
 import { validateId } from '../middleware/validateId.js'
@@ -22,7 +22,7 @@ router.param('episodeId', validateId)
 router.get('/layout', asynHandler(getLayoutController))
 router.put('/layout', asynHandler(saveLayoutController))
 
-router.post('/uploads', uploadLimiter, asynHandler(checkStorageRoom), uploadFile, asynHandler(uploadController))
+router.post('/uploads', requireUploadsEnabled, uploadLimiter, asynHandler(checkStorageRoom), uploadFile, asynHandler(uploadController))
 router.get('/uploads/:id/stream-url', asynHandler(streamUrlController))
 router.patch('/uploads/:id', asynHandler(editUploadController))
 router.delete('/uploads/:id', asynHandler(deleteUploadController))
