@@ -13,7 +13,8 @@ The React frontend is in a separate repo.
 - Saves each user's place in every episode
 - Stores each user's favorites, recently listened episodes and playlists
 - Stores each user's home page layout: section order, visibility, size and chosen items
-- Imports public podcasts from RSS feeds into a user's private library
+- Imports public podcasts, audio or video, from RSS feeds into a user's private library
+- Stores audio files that users upload, private to each user
 - Lets only admins change the catalog
 
 ## Run it
@@ -53,6 +54,8 @@ The API runs on http://localhost:3500.
 | `GET`, `PUT` on `/me/layout` | Yes | Home page layout |
 | `POST /me/feeds/preview` | Yes | Read a feed without saving it |
 | `GET`, `POST`, `PATCH`, `DELETE` on `/me/feeds`, `POST /me/feeds/:id/refresh` | Yes | Imported shows |
+| `POST /me/uploads`, `PATCH`, `DELETE` on `/me/uploads/:id` | Yes | Uploaded audio files |
+| `GET /me/uploads/:id/stream-url` | Yes | A short-lived link to play one uploaded file |
 
 ## Security decisions
 
@@ -65,6 +68,8 @@ When I reviewed the old code, I found serious problems. I wrote a failing test f
 - **Imported shows:** a show with an owner is private. Every catalog query filters on the owner, so guests, other users and admins all get a 404, even with the exact ID. The API never stores or republishes the audio, and the show keeps its original credit and link.
 - **Fetching a user's link (SSRF):** the server only reads public `http` and `https` addresses on normal web ports. It checks the real address at the moment it connects, and again after every redirect, so a site can't send it to a private address such as the cloud metadata service. Requests have time and size limits, and the size limit counts unpacked bytes. Feed requests are also rate limited per user.
 - **Feed content:** the parser refuses custom XML entities, which blocks XXE and entity bombs. Feed text is cleaned to plain text before saving, and React escapes it again when it is shown. Only `http` and `https` links are kept.
+- **Uploads:** each file is checked by its real bytes, not its name or claimed type. It gets a random name and goes in a folder that is never served directly. There are limits per file, per user and per hour. Tags inside a file are cleaned like feed text. A rejected file is removed from the disk, and so is a deleted one.
+- **Playing a private file:** an `<audio>` tag can't send a login header. So the logged-in player asks for a stream link with a token that lasts 6 hours and opens only that one file. The token has its own key, so it can't be used as a login token, and it is hidden in the logs. Every failure gives the same 404.
 - **SQL:** values are sent as parameters, and column names come from a fixed list.
 - **CORS:** only websites listed in `CORS_ORIGINS` can call the API with cookies.
 - **Logins:** failed logins are rate limited, passwords are hashed with bcrypt, and register input is validated.
@@ -76,10 +81,13 @@ When I reviewed the old code, I found serious problems. I wrote a failing test f
 - Login speed and the register error can reveal which usernames exist.
 - The login limit is kept in memory, so it resets on restart and does not work across several servers.
 - Episode audio is public, like the rest of the catalog.
+- Uploaded files are stored on the server's own disk. A cloud deployment will need lasting storage for them.
+- A stream link keeps working for up to 6 hours after logout, until it expires or the file is deleted.
+- There is no copyright removal process or terms of service yet, because this is a portfolio project with no real users. A real product would need both.
 - `npm audit` finds nothing in production packages, but it reports moderate warnings in `node-pg-migrate`, a tool used only to run migrations.
 
 ## What is not done yet
 
 - **More of the build-your-own pod:** the home page layout is done. Next come more pages, cards with their own settings, notes, and collections that users fill themselves.
-- **More ways to import:** RSS feeds work today. Next come uploaded audio files, with safe upload handling, then OPML files. Imported shows only get new episodes when the user asks, and single episodes can't be edited yet.
+- **More ways to import:** RSS feeds and audio uploads work today, and OPML files come next. Feed shows only get new episodes when the user asks, and single feed episodes can't be edited yet.
 - **Deployment:** a low-cost cloud setup with HTTPS, backups and monitoring.
