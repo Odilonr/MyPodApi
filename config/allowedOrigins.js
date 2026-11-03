@@ -1,6 +1,6 @@
-export const allowedOrigins = [
-  'https://www.yoursite.com',
-  'http://localhost:5500',
-  'http://localhost:3500',
-  'http://localhost:3000'
-]
+export function getAllowedOrigins() {
+  return (process.env.CORS_ORIGINS || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+}

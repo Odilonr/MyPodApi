@@ -1,15 +1,14 @@
-import { credentials } from "../middleware/credentials.js";
-import { allowedOrigins } from "./allowedOrigins.js";
+import createError from 'http-errors'
+import { getAllowedOrigins } from "./allowedOrigins.js";
 
 export const corsOption = {
   credentials:true,
   origin: (origin, callback) => {
-    if (allowedOrigins.indexOf(origin) !== -1 || origin) {
+    if (!origin || getAllowedOrigins().includes(origin)) {
       callback(null, true)
     } else {
-      callback(new Error('Not allowed by CORS'))
+      callback(createError(403, 'Not allowed by CORS'))
     }
   },
   optionsSuccessStatus: 200
 }
-
