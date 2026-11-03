@@ -1,5 +1,6 @@
 import createError from 'http-errors'
 import { getShows, addShow, getShowByName, getShowById, updateShow, deleteShow} from '../queries/showQueries.js';
+import { getEpisodesByShow } from '../queries/episodeQueries.js';
 
 async function getAllShowsController (req, res) {
   const type = req.query.type
@@ -71,4 +72,14 @@ async function getShowController (req, res) {
 }
 
 
-export { getAllShowsController, addShowController, updateShowController, deleteShowController, getShowController } 
+async function getShowEpisodesController (req, res) {
+  const show = await getShowById(req.params.id)
+  if (!show) {
+    throw createError(404, "Show not found")
+  }
+  res.json(await getEpisodesByShow(show.id))
+}
+
+
+export { getAllShowsController, addShowController, updateShowController, deleteShowController, getShowController,
+  getShowEpisodesController }

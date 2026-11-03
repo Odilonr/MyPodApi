@@ -35,6 +35,14 @@ async function getLatestEpisodes() {
   return result.rows.length > 0 ? result.rows : null
 }
 
+async function getEpisodesByShow (showID) {
+  const queryText = `SELECT episodes.*, shows.profile_img_link AS profile, shows.name AS show_name
+                     FROM episodes LEFT JOIN shows ON episodes.show_id = shows.id
+                     WHERE episodes.show_id = $1 ORDER BY date_added DESC`
+  const result = await poolQuery(queryText, [showID])
+  return result.rows
+}
+
 async function getEpByTitleShowId (episodeTitle, showID) {
   const queryText = `SELECT * FROM episodes WHERE title = $1 AND show_id = $2`
   const result = await poolQuery(queryText, [episodeTitle, showID])
@@ -109,4 +117,4 @@ async function deleteEpisode(episodeID) {
 }
 
 
-export {getEpisodes, getEpisodeById, getEpByTitleShowId , addEpisode, updateEpisode, deleteEpisode}
+export {getEpisodes, getEpisodesByShow, getEpisodeById, getEpByTitleShowId , addEpisode, updateEpisode, deleteEpisode}
