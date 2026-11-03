@@ -1,4 +1,6 @@
 node_modules
 .env
-migrations
+.env.*
+!.env.example
 audios
+logs
