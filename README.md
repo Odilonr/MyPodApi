@@ -2,19 +2,20 @@
 
 This is the REST API for MyPod, a podcast web app that I am building as a portfolio project. It uses Node.js, Express and PostgreSQL.
 
-**This is a portfolio project. It has no real users, and it is not deployed yet.** The sample shows are made up, and their audio is a generated tone.
+**This is a portfolio project. It has no real users, and it is not deployed yet.** The catalog comes from public RSS feeds, with each show's original credit and link. The API stores each show's details, not its audio. MyPod is not affiliated with these shows.
 
 The React frontend is in a separate repo.
 
 ## What it does
 
-- Serves the catalog of shows and episodes, and streams audio with seeking
+- Fills a public catalog from the feeds in `config/catalogFeeds.js` when the server starts, and refreshes it every 6 hours
+- Serves the catalog of shows and episodes
 - Registers and logs in users with short-lived access tokens and an httpOnly refresh cookie
 - Saves each user's place in every episode
 - Stores each user's favorites, recently listened episodes and playlists
 - Stores each user's home page layout: section order, visibility, size and chosen items
 - Imports public podcasts, audio or video, from RSS feeds into a user's private library
-- Stores audio files that users upload, private to each user
+- Stores audio files that users upload, private to each user, when `UPLOADS_ENABLED=true`. They are off by default.
 - Lets only admins change the catalog
 
 ## Run it
@@ -26,7 +27,7 @@ npm install
 cp .env.example .env        # then set your own secrets
 docker compose up -d
 npm run migrate up
-npm run seed                # adds the labeled sample shows
+npm run seed                # optional: the server also loads the feeds when it starts
 npm run dev
 ```
 
@@ -36,7 +37,7 @@ The API runs on http://localhost:3500.
 |---|---|
 | `npm test` | Runs the tests. They use PGlite, which is PostgreSQL running inside Node, so they need no database server. |
 | `npm run migrate up` | Applies database migrations |
-| `npm run seed` | Adds the sample shows and creates their audio files |
+| `npm run seed` | Loads the public feeds into the catalog once |
 | `npm run make-admin -- <username>` | Makes a user an admin |
 
 ## Main routes
