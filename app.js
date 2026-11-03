@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser'
 import userRouter from './routes/users.js'
 import showRouter from './routes/shows.js'
 import episodeRouter from './routes/episodes.js'
+import meRouter from './routes/me.js'
 import { corsOption } from './config/corsOption.js'
 import { credentials } from './middleware/credentials.js'
 import cors from 'cors'
@@ -31,6 +32,7 @@ app.use('/user', userRouter)
 
 app.use('/shows', showRouter)
 app.use('/episodes', episodeRouter)
+app.use('/me', meRouter)
 
 app.use(errorHandler)
 

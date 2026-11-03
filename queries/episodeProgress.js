@@ -30,7 +30,7 @@ async function updateCurrentTime(playtime, userID, episodeID) {
   const client = await getClient()
   try {
     await client.query('BEGIN')
-    const query = `UPDATE episodes_progress SET currentplaytime = $1 WHERE user_id = $2 AND episode_id = $3`
+    const query = `UPDATE episodes_progress SET currentplaytime = $1, updated_at = now() WHERE user_id = $2 AND episode_id = $3`
     const values = [playtime, userID, episodeID]
     const result = await client.query(query, values)
     await client.query('COMMIT')
