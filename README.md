@@ -13,6 +13,7 @@ The React frontend is in a separate repo.
 - Saves each user's place in every episode
 - Stores each user's favorites, recently listened episodes and playlists
 - Stores each user's home page layout: section order, visibility, size and chosen items
+- Imports public podcasts from RSS feeds into a user's private library
 - Lets only admins change the catalog
 
 ## Run it
@@ -50,6 +51,8 @@ The API runs on http://localhost:3500.
 | `GET`, `PUT`, `DELETE` on `/me/favorites` | Yes | Favorites |
 | `GET`, `POST`, `PUT`, `DELETE` on `/me/playlists` | Yes | Playlists |
 | `GET`, `PUT` on `/me/layout` | Yes | Home page layout |
+| `POST /me/feeds/preview` | Yes | Read a feed without saving it |
+| `GET`, `POST`, `PATCH`, `DELETE` on `/me/feeds`, `POST /me/feeds/:id/refresh` | Yes | Imported shows |
 
 ## Security decisions
 
@@ -59,6 +62,9 @@ When I reviewed the old code, I found serious problems. I wrote a failing test f
 - **Access control:** changing the catalog needs a login and an admin role. New accounts are never admins.
 - **User data:** every playlist query includes the owner. If user B asks for user A's playlist, the answer is 404, so B cannot even learn that it exists.
 - **Layouts:** the layout route has no ID in its URL, because the owner comes from the login token, so there is no ID to guess. Each save is validated against a fixed list of section types and replaces the old layout in one transaction, so a failed save keeps the old one.
+- **Imported shows:** a show with an owner is private. Every catalog query filters on the owner, so guests, other users and admins all get a 404, even with the exact ID. The API never stores or republishes the audio, and the show keeps its original credit and link.
+- **Fetching a user's link (SSRF):** the server only reads public `http` and `https` addresses on normal web ports. It checks the real address at the moment it connects, and again after every redirect, so a site can't send it to a private address such as the cloud metadata service. Requests have time and size limits, and the size limit counts unpacked bytes. Feed requests are also rate limited per user.
+- **Feed content:** the parser refuses custom XML entities, which blocks XXE and entity bombs. Feed text is cleaned to plain text before saving, and React escapes it again when it is shown. Only `http` and `https` links are kept.
 - **SQL:** values are sent as parameters, and column names come from a fixed list.
 - **CORS:** only websites listed in `CORS_ORIGINS` can call the API with cookies.
 - **Logins:** failed logins are rate limited, passwords are hashed with bcrypt, and register input is validated.
@@ -75,5 +81,5 @@ When I reviewed the old code, I found serious problems. I wrote a failing test f
 ## What is not done yet
 
 - **More of the build-your-own pod:** the home page layout is done. Next come more pages, cards with their own settings, notes, and collections that users fill themselves.
-- **Import:** public RSS feeds, OPML files and uploaded audio, with protection against unsafe server-side requests and unsafe uploads.
+- **More ways to import:** RSS feeds work today. Next come uploaded audio files, with safe upload handling, then OPML files. Imported shows only get new episodes when the user asks, and single episodes can't be edited yet.
 - **Deployment:** a low-cost cloud setup with HTTPS, backups and monitoring.
