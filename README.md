@@ -12,6 +12,7 @@ The React frontend is in a separate repo.
 - Registers and logs in users with short-lived access tokens and an httpOnly refresh cookie
 - Saves each user's place in every episode
 - Stores each user's favorites, recently listened episodes and playlists
+- Stores each user's home page layout: section order, visibility, size and chosen items
 - Lets only admins change the catalog
 
 ## Run it
@@ -48,6 +49,7 @@ The API runs on http://localhost:3500.
 | `GET /me/recent` | Yes | Recently listened |
 | `GET`, `PUT`, `DELETE` on `/me/favorites` | Yes | Favorites |
 | `GET`, `POST`, `PUT`, `DELETE` on `/me/playlists` | Yes | Playlists |
+| `GET`, `PUT` on `/me/layout` | Yes | Home page layout |
 
 ## Security decisions
 
@@ -56,6 +58,7 @@ When I reviewed the old code, I found serious problems. I wrote a failing test f
 - **File access:** audio is found by episode ID, and the file must resolve inside the audio folder. This replaced a route that could read any file on the server.
 - **Access control:** changing the catalog needs a login and an admin role. New accounts are never admins.
 - **User data:** every playlist query includes the owner. If user B asks for user A's playlist, the answer is 404, so B cannot even learn that it exists.
+- **Layouts:** the layout route has no ID in its URL, because the owner comes from the login token, so there is no ID to guess. Each save is validated against a fixed list of section types and replaces the old layout in one transaction, so a failed save keeps the old one.
 - **SQL:** values are sent as parameters, and column names come from a fixed list.
 - **CORS:** only websites listed in `CORS_ORIGINS` can call the API with cookies.
 - **Logins:** failed logins are rate limited, passwords are hashed with bcrypt, and register input is validated.
@@ -71,6 +74,6 @@ When I reviewed the old code, I found serious problems. I wrote a failing test f
 
 ## What is not done yet
 
-- **Build your own pod:** database tables and routes for each user's pages, sections and cards.
+- **More of the build-your-own pod:** the home page layout is done. Next come more pages, cards with their own settings, notes, and collections that users fill themselves.
 - **Import:** public RSS feeds, OPML files and uploaded audio, with protection against unsafe server-side requests and unsafe uploads.
 - **Deployment:** a low-cost cloud setup with HTTPS, backups and monitoring.
