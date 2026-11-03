@@ -2,13 +2,15 @@ import { getUser, createUser, addRefreshToken, getUserByToken } from "../queries
 import bcrypt from 'bcrypt'
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../config/tokens.js";
 import  createError  from 'http-errors'
+import { registerSchema } from '../validators/userValidators.js'
 
 async function registerNewUser (req, res) {
-  const { username, password, email } = req.body
-
-  if (!username || !password || !email) {
-    throw createError(400, 'All fields are required')
+  const parsed = registerSchema.safeParse(req.body)
+  if (!parsed.success) {
+    const errors = parsed.error.issues.map((issue) => ({ field: issue.path.join('.'), message: issue.message }))
+    throw createError(400, 'Invalid registration data', { errors })
   }
+  const { username, password, email } = parsed.data
 
   const duplicateUser = await getUser(username)
   if (duplicateUser) {
@@ -29,7 +31,7 @@ async function registerNewUser (req, res) {
 async function authenticateUser (req, res) {
   const username = req.body.username
   const password = req.body.password
-  if (!username || !password) {
+  if (!username || !password || typeof username !== 'string' || typeof password !== 'string') {
     throw createError(400, 'Username and password required')
   }
 
