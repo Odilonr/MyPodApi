@@ -1,0 +1,91 @@
+# Runs MyPod on one server. Only the web service is open to the internet.
+# Values come from .env.production, which exists only on the server.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    command: ["postgres", "-c", "shared_buffers=64MB", "-c", "max_connections=25"]
+    environment:
+      POSTGRES_USER: mypod
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      POSTGRES_DB: mypod
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mypod -d mypod"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    mem_limit: 300m
+    logging: *logging
+
+  migrate:
+    build:
+      context: .
+      target: migrate
+    profiles: ["tools"]
+    environment:
+      DATABASE_URL: postgres://mypod:${POSTGRES_PASSWORD}@db:5432/mypod
+    depends_on:
+      db:
+        condition: service_healthy
+    logging: *logging
+
+  api:
+    build:
+      context: .
+      target: api
+    restart: unless-stopped
+    environment:
+      PORT: "3500"
+      DATABASE_URL: postgres://mypod:${POSTGRES_PASSWORD}@db:5432/mypod
+      ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET:?Set ACCESS_TOKEN_SECRET}
+      REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET:?Set REFRESH_TOKEN_SECRET}
+      CORS_ORIGINS: https://${SITE_ADDRESS:?Set SITE_ADDRESS}
+      # The web service is the one proxy in front of the API.
+      TRUST_PROXY: "1"
+      LOG_TO_FILE: "false"
+      UPLOADS_ENABLED: "false"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3500/health').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    mem_limit: 450m
+    logging: *logging
+
+  web:
+    build:
+      context: ../frontend
+      args:
+        VITE_API_URL: /api
+        VITE_UPLOADS_ENABLED: "false"
+    restart: unless-stopped
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - api
+    mem_limit: 120m
+    logging: *logging
+
+volumes:
+  db-data:
+  caddy-data:
+  caddy-config:

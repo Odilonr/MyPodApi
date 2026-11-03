@@ -13,7 +13,8 @@ async function logEvents (message, logName) {
   const currentDate = `${format(new Date(), 'yyyy/MM/dd\tHH:mm:ss')}`
   const logItem = `${currentDate}\t${uuidv4()}\t${message}\n`
   console.log(logItem)
-  console.log(__dirname)
+  // In production, Docker keeps and rotates the console output.
+  if (process.env.LOG_TO_FILE === 'false') return
   try {
     if (!fs.existsSync(path.join(__dirname, '..', 'logs'))) {
       await fsPromises.mkdir(path.join(__dirname, '..', 'logs'))
