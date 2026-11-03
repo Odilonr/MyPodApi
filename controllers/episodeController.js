@@ -11,12 +11,15 @@ import { dirname } from 'path';
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
+const MAX_LATEST_LIMIT = 50
+
 // The largest value the INTEGER column can hold.
 const MAX_PLAY_TIME = 2147483647
 
 async function getAllEpisodesController (req, res) {
   const episodeType = req.query.type
-  const episodes = await getEpisodes(episodeType)
+  const limit = parseInt(req.query.limit, 10)
+  const episodes = await getEpisodes(episodeType, limit > 0 ? Math.min(limit, MAX_LATEST_LIMIT) : undefined)
   if (!episodes) { 
     return res.status(204).json({'message':'No Episodes Found'})
   }

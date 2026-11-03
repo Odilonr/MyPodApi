@@ -2,11 +2,12 @@ import { poolQuery, getClient} from '../config/dbConn.js'
 import { v4 as uuidv4 } from 'uuid'
 import { getAllowedColumns } from './allowedColumns.js'
 
+const DEFAULT_LATEST_LIMIT = 8
 const UPDATABLE_COLUMNS = ['title', 'description', 'audio_link', 'date_added', 'date_updated', 'duration', 'show_id']
 
-async function getEpisodes (queryType) {
+async function getEpisodes (queryType, limit) {
   if (queryType === 'Latest') {
-    return await getLatestEpisodes()
+    return await getLatestEpisodes(limit)
   } else if (queryType == 'Hero') {
     return await getHeroEpisodes()
   } else {
@@ -27,11 +28,11 @@ async function getHeroEpisodes () {
   return result.rows.length > 0 ? result.rows : null
 }
 
-async function getLatestEpisodes() {
+async function getLatestEpisodes(limit = DEFAULT_LATEST_LIMIT) {
   const text = `SELECT episodes.*, shows.profile_img_link AS profile,
                 shows.name AS show_name FROM episodes LEFT JOIN shows ON episodes.show_id = shows.id 
-                ORDER BY date_added DESC LIMIT 8`
-  const result = await poolQuery(text)
+                ORDER BY date_added DESC LIMIT $1`
+  const result = await poolQuery(text, [limit])
   return result.rows.length > 0 ? result.rows : null
 }
 

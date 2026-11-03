@@ -41,10 +41,46 @@ const SAMPLE_SHOWS = [
     release_schedule: 'Weekly',
     tone: 349,
     episodes: ['How radio waves travel', 'Plants that keep time', 'Listening to the weather']
+  },
+  {
+    name: 'Sample: Quiet Machines',
+    studio: 'MyPod sample data',
+    host_name: 'Sample host',
+    show_type: 'Technology',
+    release_schedule: 'Weekly',
+    tone: 392,
+    episodes: ['The fridge that hums', 'Inside an old typewriter', 'Why elevators wait', 'Clocks in the walls']
+  },
+  {
+    name: 'Sample: Second Draft',
+    studio: 'MyPod sample data',
+    host_name: 'Sample host',
+    show_type: 'Writing',
+    release_schedule: 'Every two weeks',
+    tone: 220,
+    episodes: ['Cutting the first page', 'Letters never sent', 'A story in one room', 'Reading out loud']
+  },
+  {
+    name: 'Sample: Field Recordings',
+    studio: 'MyPod sample data',
+    host_name: 'Sample host',
+    show_type: 'Nature',
+    release_schedule: 'Monthly',
+    tone: 262,
+    episodes: ['Rain on a tin roof', 'Morning at the lake', 'Crickets after dark', 'Wind in tall grass']
+  },
+  {
+    name: 'Sample: Long Way Round',
+    studio: 'MyPod sample data',
+    host_name: 'Sample host',
+    show_type: 'Travel',
+    release_schedule: 'Weekly',
+    tone: 330,
+    episodes: ['The slow train north', 'Lost in a market', 'Ferries at dawn', 'Coming home again']
   }
 ]
 
-const SAMPLE_RATE = 8000
+const SAMPLE_RATE = 4000
 const VOLUME = 18
 
 // Builds a small mono 8-bit WAV file holding a quiet tone that fades in and out.
@@ -93,9 +129,14 @@ async function seedSampleData (audioDir) {
     for (const [index, title] of sample.episodes.entries()) {
       const fileName = `${slug(title)}.wav`
       const seconds = 60 + index * 30
-      fs.writeFileSync(path.join(showDir, fileName), createToneWav(sample.tone + index * 20, seconds))
+      const filePath = path.join(showDir, fileName)
+      if (!fs.existsSync(filePath)) {
+        fs.writeFileSync(filePath, createToneWav(sample.tone + index * 20, seconds))
+      }
       if (!(await getEpByTitleShowId(title, show.id))) {
-        const dateAdded = new Date(Date.now() - (index + 1) * SAMPLE_SHOWS.indexOf(sample) * 86400000 - index * 3600000)
+        // Each show's newest episode comes first, so the latest list shows every show.
+        const daysAgo = SAMPLE_SHOWS.indexOf(sample) + index * SAMPLE_SHOWS.length
+        const dateAdded = new Date(Date.now() - daysAgo * 86400000)
         await addEpisode({
           title,
           description: `Sample episode from ${sample.name.replace('Sample: ', '')}. The audio is a generated tone.`,
