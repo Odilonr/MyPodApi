@@ -1,5 +1,6 @@
 import fs from 'fs'
 import path from 'path'
+import { format } from 'date-fns'
 import { addShow, getShowByName } from '../queries/showQueries.js'
 import { addEpisode, getEpByTitleShowId } from '../queries/episodeQueries.js'
 
@@ -141,7 +142,7 @@ async function seedSampleData (audioDir) {
           title,
           description: `Sample episode from ${sample.name.replace('Sample: ', '')}. The audio is a generated tone.`,
           audio_link: `audios/sample/${slug(sample.name)}/${fileName}`,
-          date_added: dateAdded.toISOString(),
+          date_added: format(dateAdded, 'yyyy-MM-dd HH:mm:ss'),
           duration: seconds,
           show_id: show.id
         })
