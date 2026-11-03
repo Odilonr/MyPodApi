@@ -4,3 +4,4 @@ node_modules
 !.env.example
 audios
 logs
+CLAUDE.md
