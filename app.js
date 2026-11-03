@@ -29,7 +29,6 @@ app.use(cookieParser())
 
 app.use('/user', userRouter)
 
-//app.use(verifyJWT)
 app.use('/shows', showRouter)
 app.use('/episodes', episodeRouter)
 
