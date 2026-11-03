@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: mypod
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      POSTGRES_DB: mypod
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - mypod-db:/var/lib/postgresql/data
+
+volumes:
+  mypod-db:

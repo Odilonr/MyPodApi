@@ -9,7 +9,8 @@
     "migrate": "node-pg-migrate",
     "test": "vitest run",
     "test:watch": "vitest",
-    "make-admin": "node scripts/makeAdmin.js"
+    "make-admin": "node scripts/makeAdmin.js",
+    "seed": "node scripts/seed.js"
   },
   "keywords": [],
   "author": "",
