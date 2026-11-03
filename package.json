@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node server",
-    "dev": "nodemon server",
+    "dev": "node --watch server",
     "migrate": "node-pg-migrate",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -17,14 +17,12 @@
   "description": "",
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.14",
-    "node-pg-migrate": "^7.7.0",
-    "nodemon": "^3.1.7",
+    "node-pg-migrate": "^9.0.0",
     "supertest": "^7.3.1",
     "vitest": "^5.1.0"
   },
   "dependencies": {
-    "bcrypt": "^5.1.1",
-    "config": "^3.3.12",
+    "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "date-fns": "^4.1.0",
@@ -35,7 +33,7 @@
     "http-errors": "^2.0.0",
     "jose": "^6.2.15",
     "pg": "^8.13.0",
-    "uuid": "^10.0.0",
+    "uuid": "^14.0.3",
     "zod": "^4.6.7"
   }
 }
