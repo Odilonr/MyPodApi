@@ -26,7 +26,9 @@ async function logEvents (message, logName) {
 
 function logger (req, res, next) {
   try {
-    logEvents(`${req.method}\t${req.headers.origin}\t${req.url}`, 'reqLog.txt')
+    // A stream token in the address opens a private file, so keep it out of the logs.
+    const url = req.url.replace(/([?&]token=)[^&]*/, '$1[hidden]')
+    logEvents(`${req.method}\t${req.headers.origin}\t${url}`, 'reqLog.txt')
     console.log(`${req.method} ${req.path}`)
     next()
   } catch (err) {

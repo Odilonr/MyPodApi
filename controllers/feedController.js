@@ -1,7 +1,9 @@
 import createError from 'http-errors'
 import { z } from 'zod'
 import { cleanText, parseFeed } from '../services/feedParser.js'
+import { removeStoredFile } from '../services/audioFiles.js'
 import { safeFetchText } from '../services/safeFetch.js'
+import { getShowStorageKeys } from '../queries/uploadQueries.js'
 import { getImportedShows, getImportedShow, countImportedShows, createImportedShow, addNewEpisodes,
   updateImportedShow, deleteImportedShow } from '../queries/feedQueries.js'
 
@@ -71,23 +73,32 @@ async function listFeedsController (req, res) {
 async function editFeedController (req, res) {
   await requireImportedShow(req)
   const body = parseBody(editSchema, req.body)
-  await updateImportedShow(req.user, req.params.id, {
-    name: cleanChoice(body.name, MAX_NAME),
-    category: cleanChoice(body.category, MAX_CATEGORY)
-  })
+  try {
+    await updateImportedShow(req.user, req.params.id, {
+      name: cleanChoice(body.name, MAX_NAME),
+      category: cleanChoice(body.category, MAX_CATEGORY)
+    })
+  } catch (err) {
+    // Uploaded shows have a unique name per user.
+    if (err.code === '23505') throw createError(409, 'You already have a show with this name')
+    throw err
+  }
   res.json(await getImportedShow(req.user, req.params.id))
 }
 
 async function refreshFeedController (req, res) {
   const show = await requireImportedShow(req)
+  if (!show.feed_url) throw createError(400, 'This show has no feed to check')
   const { episodes } = parseFeed(await safeFetchText(show.feed_url))
   res.json({ added: await addNewEpisodes(show.id, episodes) })
 }
 
 async function deleteFeedController (req, res) {
+  const storageKeys = await getShowStorageKeys(req.user, req.params.id)
   if (!(await deleteImportedShow(req.user, req.params.id))) {
     throw createError(404, 'Show not found')
   }
+  await Promise.all(storageKeys.map(removeStoredFile))
   res.sendStatus(204)
 }
 

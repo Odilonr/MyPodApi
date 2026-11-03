@@ -22,4 +22,13 @@ const feedLimiter = rateLimit({
   message: { status: 429, message: 'Too many feed requests, try again later', error: null }
 })
 
-export { loginLimiter, feedLimiter }
+const uploadLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 60,
+  keyGenerator: (req) => req.user,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { status: 429, message: 'Too many uploads, try again later', error: null }
+})
+
+export { loginLimiter, feedLimiter, uploadLimiter }

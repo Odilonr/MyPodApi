@@ -5,8 +5,11 @@ import { recentController, favoritesController, addFavoriteController, removeFav
 import { getLayoutController, saveLayoutController } from '../controllers/layoutController.js'
 import { previewFeedController, importFeedController, listFeedsController, editFeedController,
   refreshFeedController, deleteFeedController } from '../controllers/feedController.js'
+import { checkStorageRoom, uploadController, editUploadController, deleteUploadController,
+  streamUrlController } from '../controllers/uploadController.js'
 import { asynHandler } from '../middleware/errorHandler.js'
-import { feedLimiter } from '../middleware/rateLimiters.js'
+import { uploadFile } from '../middleware/uploadFile.js'
+import { feedLimiter, uploadLimiter } from '../middleware/rateLimiters.js'
 import { verifyJWT } from '../middleware/verifyJWT.js'
 import { validateId } from '../middleware/validateId.js'
 
@@ -18,6 +21,11 @@ router.param('episodeId', validateId)
 
 router.get('/layout', asynHandler(getLayoutController))
 router.put('/layout', asynHandler(saveLayoutController))
+
+router.post('/uploads', uploadLimiter, asynHandler(checkStorageRoom), uploadFile, asynHandler(uploadController))
+router.get('/uploads/:id/stream-url', asynHandler(streamUrlController))
+router.patch('/uploads/:id', asynHandler(editUploadController))
+router.delete('/uploads/:id', asynHandler(deleteUploadController))
 
 router.get('/feeds', asynHandler(listFeedsController))
 router.post('/feeds/preview', feedLimiter, asynHandler(previewFeedController))

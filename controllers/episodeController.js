@@ -3,6 +3,9 @@ import { getEpisodes, getEpByTitleShowId , getEpisodeById, addEpisode, updateEpi
   deleteEpisode } from "../queries/episodeQueries.js"
 import { getCurrentTime, startEpTime, updateCurrentTime } from "../queries/episodeProgress.js"
 import createError from "http-errors"
+import { verifyStreamToken } from '../config/tokens.js'
+import { getOwnedUpload } from '../queries/uploadQueries.js'
+import { uploadDir } from '../services/audioFiles.js'
 import { validate as isUuid } from 'uuid'
 import fsPromises from 'fs/promises'
 import path from 'path'
@@ -130,7 +133,41 @@ async function findAudioFile (audioLink) {
   }
 }
 
+// Plays an uploaded file. Every failure gives the same 404, so a request can't
+// tell whether a private file exists.
+async function sendUploadedFile (req, res, next) {
+  let payload
+  try {
+    payload = await verifyStreamToken(req.query.token)
+  } catch (err) {
+    throw createError(404, 'Audio not found')
+  }
+  if (payload.episodeID !== req.params.id) {
+    throw createError(404, 'Audio not found')
+  }
+  const upload = await getOwnedUpload(payload.userID, req.params.id)
+  if (!upload) {
+    throw createError(404, 'Audio not found')
+  }
+  res.sendFile(path.basename(upload.storage_key), {
+    root: uploadDir(),
+    cacheControl: false,
+    headers: {
+      'Content-Type': upload.content_type,
+      'Cache-Control': 'private, no-store',
+      'X-Content-Type-Options': 'nosniff'
+    }
+  }, (err) => {
+    if (err && !res.headersSent) {
+      next(createError(err.status === 416 ? 416 : 404, 'Audio not found'))
+    }
+  })
+}
+
 async function audioEpController (req, res, next) {
+  if (typeof req.query.token === 'string') {
+    return sendUploadedFile(req, res, next)
+  }
   const episode = await getEpisodeById(req.params.id)
   if (!episode) {
     throw createError(404, 'Episode not found')

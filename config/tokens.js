@@ -21,4 +21,10 @@ const signRefreshToken = (userID) => signToken({ userID }, process.env.REFRESH_T
 const verifyAccessToken = (token) => verifyToken(token, process.env.ACCESS_TOKEN_SECRET)
 const verifyRefreshToken = (token) => verifyToken(token, process.env.REFRESH_TOKEN_SECRET)
 
-export { signAccessToken, signRefreshToken, verifyAccessToken, verifyRefreshToken }
+// A stream token opens one uploaded file. It uses its own key, so it can't be
+// used as a login token, and a login token can't be used in its place.
+const streamSecret = () => `${process.env.ACCESS_TOKEN_SECRET}:stream`
+const signStreamToken = (userID, episodeID) => signToken({ userID, episodeID }, streamSecret(), '6h')
+const verifyStreamToken = (token) => verifyToken(token, streamSecret())
+
+export { signAccessToken, signRefreshToken, verifyAccessToken, verifyRefreshToken, signStreamToken, verifyStreamToken }
