@@ -1,6 +1,10 @@
 import { poolQuery, getClient} from "../config/dbConn.js";
 import {v4 as uuidv4} from 'uuid'
 import { format } from 'date-fns';
+import { getAllowedColumns } from './allowedColumns.js'
+
+const UPDATABLE_COLUMNS = ['name', 'description', 'profile_img_link', 'release_schedule', 'studio',
+  'host_name', 'host_img_link', 'review_stars', 'review_count', 'rated', 'show_type']
 
 async function getShows (type) {
   if (type === 'Popular') {
@@ -54,16 +58,14 @@ async function addShow (newShow) {
 }
 
 async function updateShow (showID, updates) {
+  const updateKeys = getAllowedColumns(updates, UPDATABLE_COLUMNS)
   const client = await getClient()
-  const updateKeys = Object.keys(updates)
   try {
     await client.query('BEGIN')
     for (let key of updateKeys) {
-      if (key !== 'id') {
-        const queryText = `UPDATE shows SET ${key} = $1 WHERE id = $2`
-        const values = [updates[key], showID]
-        await client.query(queryText, values) 
-      }
+      const queryText = `UPDATE shows SET ${key} = $1 WHERE id = $2`
+      const values = [updates[key], showID]
+      await client.query(queryText, values) 
     }
     await client.query('COMMIT')
   } catch(e) {

@@ -1,5 +1,8 @@
 import { poolQuery, getClient} from '../config/dbConn.js'
 import { v4 as uuidv4 } from 'uuid'
+import { getAllowedColumns } from './allowedColumns.js'
+
+const UPDATABLE_COLUMNS = ['title', 'description', 'audio_link', 'date_added', 'date_updated', 'duration', 'show_id']
 
 async function getEpisodes (queryType) {
   if (queryType === 'Latest') {
@@ -69,16 +72,14 @@ async function addEpisode (newEpisode) {
 }
 
 async function updateEpisode (episodeID, updates) {
+  const updateKeys = getAllowedColumns(updates, UPDATABLE_COLUMNS)
   const client = await getClient()
-  const updateKeys = Object.keys(updates)
   try {
     await client.query('BEGIN')
     for (let key of updateKeys) {
-      if (key !== 'id') {
-        const queryText = `UPDATE episodes SET ${key} = $1 WHERE id = $2`
-        const values = [updates[key], episodeID]
-        const result = await client.query(queryText, values) 
-      }
+      const queryText = `UPDATE episodes SET ${key} = $1 WHERE id = $2`
+      const values = [updates[key], episodeID]
+      const result = await client.query(queryText, values) 
     }
     await client.query('COMMIT')
     const changedEp = await getEpisodeById(episodeID)
