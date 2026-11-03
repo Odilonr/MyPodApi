@@ -4,7 +4,8 @@ import https from 'https'
 import net from 'net'
 import zlib from 'zlib'
 
-const MAX_BYTES = 5 * 1024 * 1024
+// Long-running shows have feeds of tens of megabytes.
+const MAX_BYTES = 40 * 1024 * 1024
 const TIMEOUT_MS = 10000
 const MAX_REDIRECTS = 5
 const REDIRECT_CODES = [301, 302, 303, 307, 308]
