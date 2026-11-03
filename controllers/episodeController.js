@@ -2,14 +2,17 @@ import { getShowByName } from "../queries/showQueries.js"
 import { getEpisodes, getEpByTitleShowId , getEpisodeById, addEpisode, updateEpisode, 
   deleteEpisode } from "../queries/episodeQueries.js"
 import { getCurrentTime, startEpTime, updateCurrentTime } from "../queries/episodeProgress.js"
-import jwt from "jsonwebtoken"
 import createError from "http-errors"
+import { validate as isUuid } from 'uuid'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
+
+// The largest value the INTEGER column can hold.
+const MAX_PLAY_TIME = 2147483647
 
 async function getAllEpisodesController (req, res) {
   const episodeType = req.query.type
@@ -86,62 +89,25 @@ async function getEpisodeController(req, res) {
 
 async function getCurrentPlayTime (req, res) {
   const episodeID = req.params.id
-  const authHeader = req.headers.authorization || req.headers.Authorization
-  console.log(authHeader)
-  let currentplaytime
-  if (!authHeader.startsWith('Bearer ')) {
-    throw createError(401, 'Invalid')
+  const episode = await getEpisodeById(episodeID)
+  if (!episode) {
+    throw createError(404, 'Episode not found')
   }
-
-  const token = authHeader.split(' ')[1]
-  console.log(token)
-  jwt.verify(
-    token,
-    process.env.ACCESS_TOKEN_SECRET,
-    async (err, decoded) => {
-      if (err) {
-        throw createError(403, 'Invalid')
-      }
-      const userID = decoded.userID
-      currentplaytime = await getCurrentTime(userID, episodeID)
-      if (!currentplaytime) {
-        currentplaytime = await startEpTime(userID, episodeID)
-      }
-      res.json(currentplaytime)
-    }
-  )
-  
+  let currentplaytime = await getCurrentTime(req.user, episodeID)
+  if (!currentplaytime) {
+    currentplaytime = await startEpTime(req.user, episodeID)
+  }
+  res.json(currentplaytime)
 }
 
 async function updateCurrentEpTime (req, res) {
-
-  try {
-    const episodeID = req.query.episodeID
-    const currentplaytime = parseInt(req.query.new)
-    const authHeader = req.headers.authorization || req.headers.Authorization
-    if (!authHeader.startsWith('Bearer ')) {
-      throw createError(403, 'Invalid')
-    }
-
-    const token = authHeader.split(' ')[1]
-    jwt.verify(
-      token, 
-      process.env.ACCESS_TOKEN_SECRET,
-      async (err, decoded) => {
-        if (err) {
-          throw createError(403, `Error${err}`)
-        }
-        const userID = decoded.userID
-        console.log(decoded.userID)
-        console.log(episodeID)
-        console.log(currentplaytime)
-        await updateCurrentTime(currentplaytime, userID, episodeID)
-        res.json({'message': 'Updated Timestamp Succesfully'})
-      }
-    ) } catch(e) {
-    console.log(e.message)
+  const episodeID = req.query.episodeID
+  const currentplaytime = parseInt(req.query.new, 10)
+  if (!isUuid(episodeID) || !Number.isInteger(currentplaytime) || currentplaytime < 0 || currentplaytime > MAX_PLAY_TIME) {
+    throw createError(400, 'Invalid playback update')
   }
-  
+  await updateCurrentTime(currentplaytime, req.user, episodeID)
+  res.json({'message': 'Updated Timestamp Succesfully'})
 }
 
 async function audioEpController (req, res) {

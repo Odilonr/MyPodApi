@@ -1,6 +1,6 @@
 import { getUser, createUser, addRefreshToken, getUserByToken } from "../queries/userQueries.js";
 import bcrypt from 'bcrypt'
-import jwt from 'jsonwebtoken'
+import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../config/tokens.js";
 import  createError  from 'http-errors'
 
 async function registerNewUser (req, res) {
@@ -40,19 +40,8 @@ async function authenticateUser (req, res) {
   const passwordMatch = await bcrypt.compare(password, foundUser.password)
   if (passwordMatch){
     const role = foundUser.is_admin ? 'admin' : 'regular'
-    const accessToken = jwt.sign(
-      {  
-        "userID": foundUser.id,
-        "role": role  
-      },
-      process.env.ACCESS_TOKEN_SECRET,
-      { expiresIn : '1000s'}
-    )
-    const refreshToken = jwt.sign(
-      {"userID": foundUser.id},
-      process.env.REFRESH_TOKEN_SECRET,
-      { expiresIn: '1d' }
-    )
+    const accessToken = await signAccessToken(foundUser.id, role)
+    const refreshToken = await signRefreshToken(foundUser.id)
     const result = await addRefreshToken(foundUser.id, refreshToken)
     res.cookie('jwt', refreshToken, {httpOnly: true,  sameSite: 'None',secure:true, maxAge: 24 * 60 * 60 * 1000})
     res.json({ accessToken })
@@ -72,26 +61,18 @@ async function refreshToken (req, res) {
     throw createError(403, 'Please Authenticate')
   }
 
-  jwt.verify(
-    refreshToken,
-    process.env.REFRESH_TOKEN_SECRET,
-    (err, decoded) => {
-      if (err || foundUser.id !== decoded.userID) {
-        throw createError(403)
-      }
-      console.log(decoded.userID)
-      const role = foundUser.is_admin ? 'admin' : 'regular'
-      const accessToken = jwt.sign(
-        {
-          "userID": decoded.userID,
-          "role": role 
-        },
-        process.env.ACCESS_TOKEN_SECRET,
-        { expiresIn: '1000s' }
-      )
-      res.json({ accessToken })
-    }
-  )
+  let decoded
+  try {
+    decoded = await verifyRefreshToken(refreshToken)
+  } catch (err) {
+    throw createError(403)
+  }
+  if (foundUser.id !== decoded.userID) {
+    throw createError(403)
+  }
+  const role = foundUser.is_admin ? 'admin' : 'regular'
+  const accessToken = await signAccessToken(decoded.userID, role)
+  res.json({ accessToken })
 }
 
 async function logOutUser (req, res) {

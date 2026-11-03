@@ -32,7 +32,7 @@
     "express-async-errors": "^3.1.1",
     "express-rate-limit": "^8.7.3",
     "http-errors": "^2.0.0",
-    "jsonwebtoken": "^9.0.2",
+    "jose": "^6.2.15",
     "pg": "^8.13.0",
     "uuid": "^10.0.0",
     "zod": "^4.6.7"

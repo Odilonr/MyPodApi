@@ -4,8 +4,11 @@ import {getAllEpisodesController, addEpisodeController, updateEpisodeController,
  } from '../controllers/episodeController.js'
 import { asynHandler } from '../middleware/errorHandler.js'
 import { verifyJWT } from '../middleware/verifyJWT.js'
+import { validateId } from '../middleware/validateId.js'
 
 const router = express.Router()
+
+router.param('id', validateId)
 
 router.get('/', getAllEpisodesController)
 router.post('/', asynHandler(addEpisodeController))
