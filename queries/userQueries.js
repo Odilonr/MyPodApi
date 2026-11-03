@@ -52,5 +52,11 @@ async function addRefreshToken(userID, refreshToken) {
   }
 }
 
-export {getUser, getUserByToken,  createUser, addRefreshToken}
+async function setUserAdmin(username) {
+  const queryText = `UPDATE users SET is_admin = TRUE WHERE username = $1 RETURNING id`
+  const result = await poolQuery(queryText, [username])
+  return result.rows.length > 0
+}
+
+export {getUser, getUserByToken,  createUser, addRefreshToken, setUserAdmin}
 

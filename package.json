@@ -8,7 +8,8 @@
     "dev": "nodemon server",
     "migrate": "node-pg-migrate",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "make-admin": "node scripts/makeAdmin.js"
   },
   "keywords": [],
   "author": "",
