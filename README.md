@@ -2,7 +2,9 @@
 
 This is the REST API for MyPod, a podcast web app that I am building as a portfolio project. It uses Node.js, Express and PostgreSQL.
 
-**This is a portfolio project. It has no real users, and it is not deployed yet.** The catalog comes from public RSS feeds, with each show's original credit and link. The API stores each show's details, not its audio. MyPod is not affiliated with these shows.
+**Live demo: https://34-236-85-162.sslip.io**
+
+**This is a portfolio project. It has no real users.** The catalog comes from public RSS feeds, with each show's original credit and link. The API stores each show's details, not its audio. MyPod is not affiliated with these shows.
 
 The React frontend is in a separate repo.
 
@@ -76,13 +78,39 @@ When I reviewed the old code, I found serious problems. I wrote a failing test f
 - **Logins:** failed logins are rate limited, passwords are hashed with bcrypt, and register input is validated.
 - **Secrets:** they stay in `.env`, which git ignores. `.env.example` has placeholder values only.
 
+## Deployment
+
+MyPod runs on one AWS Lightsail server (1 GB of memory, about $7 a month) with Docker Compose.
+
+| Service | What it does | Open to the internet |
+|---|---|---|
+| `web` | Caddy serves the React site, sends the API requests on, gets its own HTTPS certificate, and sets the security headers | Ports 80 and 443 |
+| `api` | This Express API, as a non-root user with production packages only | No |
+| `db` | PostgreSQL 16 | No |
+
+- **Secrets:** they are generated on the server in `.env.production`, and they are never committed.
+- **Backups:** a nightly `pg_dump` keeps the last 7 copies. Restoring one was tested, and Lightsail snapshots cover losing the whole server.
+- **Recovery:** the services restart by themselves, which was tested with a real reboot.
+- **Health check:** `/health` reports whether the API can reach the database.
+- **Updates:** `bash deploy/deploy.sh` on the server gets the newest code, builds it, runs migrations and restarts.
+
+**One load test, Nov 3, 2026:** simulated guest visitors browsing, run from one home computer against the live site. It did not cover logins or saving a place, and audio plays from each show's own servers, so it is not part of this test.
+
+| Visitors | Pace | Requests per second | Typical response | 95% under | Errors |
+|---|---|---|---|---|---|
+| 20 | A pause between pages | 17 | 62 ms | 296 ms | 0 |
+| 50 | A pause between pages | 40 | 61 ms | 421 ms | 0 |
+| 50 | No pauses, as a stress test | 365 | 166 ms | 540 ms | 0 |
+
 ## Known limits
 
 - Refresh tokens are stored as plain text in the database, and they are not replaced after each use.
 - Login speed and the register error can reveal which usernames exist.
 - The login limit is kept in memory, so it resets on restart and does not work across several servers.
 - Episode audio is public, like the rest of the catalog.
-- Uploaded files are stored on the server's own disk. A cloud deployment will need lasting storage for them.
+- Uploads are turned off on the live site. If they are turned on, files are stored on the server's own disk, so they would need their own volume and backups.
+- The site address uses the free sslip.io name service, so a custom domain would be more dependable.
+- There is no outside alert yet that says when the site is down.
 - A stream link keeps working for up to 6 hours after logout, until it expires or the file is deleted.
 - There is no copyright removal process or terms of service yet, because this is a portfolio project with no real users. A real product would need both.
 - `npm audit` finds nothing in production packages, but it reports moderate warnings in `node-pg-migrate`, a tool used only to run migrations.
@@ -91,4 +119,3 @@ When I reviewed the old code, I found serious problems. I wrote a failing test f
 
 - **More of the build-your-own pod:** the home page layout is done. Next come more pages, cards with their own settings, notes, and collections that users fill themselves.
 - **More ways to import:** RSS feeds and audio uploads work today, and OPML files come next. Feed shows only get new episodes when the user asks, and single feed episodes can't be edited yet.
-- **Deployment:** a low-cost cloud setup with HTTPS, backups and monitoring.
