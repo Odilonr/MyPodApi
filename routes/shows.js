@@ -1,9 +1,10 @@
 import express from 'express'
-import { getAllShowsController, addShowController, updateShowController, 
+import { getAllShowsController, addShowController, updateShowController,
   deleteShowController, getShowController, getShowEpisodesController} from '../controllers/showController.js'
 import { asynHandler } from '../middleware/errorHandler.js'
 import { validateId } from '../middleware/validateId.js'
 import { verifyJWT } from '../middleware/verifyJWT.js'
+import { optionalJWT } from '../middleware/optionalJWT.js'
 import { requireAdmin } from '../middleware/requireAdmin.js'
 
 const router = express.Router()
@@ -12,12 +13,12 @@ router.param('id', validateId)
 
 const adminOnly = [verifyJWT, requireAdmin]
 
-router.get('/', getAllShowsController)
+router.get('/', optionalJWT, getAllShowsController)
 router.post('/', adminOnly, asynHandler(addShowController))
 router.put('/:id', adminOnly, asynHandler(updateShowController))
 router.delete('/:id', adminOnly, asynHandler(deleteShowController))
 
-router.get('/:id', asynHandler(getShowController))
-router.get('/:id/episodes', asynHandler(getShowEpisodesController))
+router.get('/:id', optionalJWT, asynHandler(getShowController))
+router.get('/:id/episodes', optionalJWT, asynHandler(getShowEpisodesController))
 
 export default router 

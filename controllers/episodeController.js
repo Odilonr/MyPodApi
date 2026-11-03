@@ -1,5 +1,5 @@
 import { getShowByName } from "../queries/showQueries.js"
-import { getEpisodes, getEpByTitleShowId , getEpisodeById, addEpisode, updateEpisode, 
+import { getEpisodes, getEpByTitleShowId , getEpisodeById, addEpisode, updateEpisode,
   deleteEpisode } from "../queries/episodeQueries.js"
 import { getCurrentTime, startEpTime, updateCurrentTime } from "../queries/episodeProgress.js"
 import createError from "http-errors"
@@ -19,8 +19,8 @@ const MAX_PLAY_TIME = 2147483647
 async function getAllEpisodesController (req, res) {
   const episodeType = req.query.type
   const limit = parseInt(req.query.limit, 10)
-  const episodes = await getEpisodes(episodeType, limit > 0 ? Math.min(limit, MAX_LATEST_LIMIT) : undefined)
-  if (!episodes) { 
+  const episodes = await getEpisodes(episodeType, limit > 0 ? Math.min(limit, MAX_LATEST_LIMIT) : undefined, req.user)
+  if (!episodes) {
     return res.status(204).json({'message':'No Episodes Found'})
   }
   res.json(episodes)
@@ -48,11 +48,11 @@ async function addEpisodeController(req, res) {
   }
 
   const newEpisode = await addEpisode({
-    title: title, 
+    title: title,
     description: description,
     audio_link: audio_link,
-    date_added: date_added, 
-    duration: duration, 
+    date_added: date_added,
+    duration: duration,
     show_id: show.id
   })
 
@@ -83,7 +83,7 @@ async function deleteEpisodeController(req, res) {
 
 async function getEpisodeController(req, res) {
   const id = req.params.id
-  const episode = await getEpisodeById(id)
+  const episode = await getEpisodeById(id, req.user)
   if (!episode) {
     throw createError(404, 'Show not found')
   }
@@ -92,7 +92,7 @@ async function getEpisodeController(req, res) {
 
 async function getCurrentPlayTime (req, res) {
   const episodeID = req.params.id
-  const episode = await getEpisodeById(episodeID)
+  const episode = await getEpisodeById(episodeID, req.user)
   if (!episode) {
     throw createError(404, 'Episode not found')
   }
@@ -150,6 +150,6 @@ async function audioEpController (req, res, next) {
 }
 
 
-export { getAllEpisodesController, addEpisodeController, updateEpisodeController, deleteEpisodeController, 
+export { getAllEpisodesController, addEpisodeController, updateEpisodeController, deleteEpisodeController,
   getEpisodeController, getCurrentPlayTime, updateCurrentEpTime, audioEpController
 }

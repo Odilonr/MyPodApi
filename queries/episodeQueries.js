@@ -5,34 +5,37 @@ import { getAllowedColumns } from './allowedColumns.js'
 const DEFAULT_LATEST_LIMIT = 8
 const UPDATABLE_COLUMNS = ['title', 'description', 'audio_link', 'date_added', 'date_updated', 'duration', 'show_id']
 
-async function getEpisodes (queryType, limit) {
+// An episode of a show with an owner is private. Pass no user to see only the catalog.
+async function getEpisodes (queryType, limit, userID = null) {
   if (queryType === 'Latest') {
-    return await getLatestEpisodes(limit)
+    return await getLatestEpisodes(limit, userID)
   } else if (queryType == 'Hero') {
-    return await getHeroEpisodes()
+    return await getHeroEpisodes(userID)
   } else {
-    const text = `SELECT * FROM episodes`
-    const result = await poolQuery(text)
+    const text = `SELECT episodes.* FROM episodes LEFT JOIN shows ON episodes.show_id = shows.id WHERE (shows.owner_id IS NULL OR shows.owner_id = $1)`
+    const result = await poolQuery(text, [userID])
     return result.rows.length > 0 ? result.rows : null
   }
 }
 
-async function getHeroEpisodes () {
-  const text = `SELECT DISTINCT ON (shows.review_count) episodes.*, 
-                shows.profile_img_link AS profile, shows.name AS show_name 
+async function getHeroEpisodes (userID = null) {
+  const text = `SELECT DISTINCT ON (shows.review_count) episodes.*,
+                shows.profile_img_link AS profile, shows.name AS show_name
                 FROM episodes
-                LEFT JOIN shows ON episodes.show_id = shows.id 
+                LEFT JOIN shows ON episodes.show_id = shows.id
+                WHERE (shows.owner_id IS NULL OR shows.owner_id = $1)
                 GROUP BY episodes.id, shows.review_count, shows.profile_img_link, show_name
                 ORDER BY review_count DESC LIMIT 8`
-  const result = await poolQuery(text)
+  const result = await poolQuery(text, [userID])
   return result.rows.length > 0 ? result.rows : null
 }
 
-async function getLatestEpisodes(limit = DEFAULT_LATEST_LIMIT) {
+async function getLatestEpisodes(limit = DEFAULT_LATEST_LIMIT, userID = null) {
   const text = `SELECT episodes.*, shows.profile_img_link AS profile,
-                shows.name AS show_name FROM episodes LEFT JOIN shows ON episodes.show_id = shows.id 
-                ORDER BY date_added DESC LIMIT $1`
-  const result = await poolQuery(text, [limit])
+                shows.name AS show_name FROM episodes LEFT JOIN shows ON episodes.show_id = shows.id
+                WHERE (shows.owner_id IS NULL OR shows.owner_id = $2)
+                ORDER BY episodes.date_added DESC LIMIT $1`
+  const result = await poolQuery(text, [limit, userID])
   return result.rows.length > 0 ? result.rows : null
 }
 
@@ -50,11 +53,11 @@ async function getEpByTitleShowId (episodeTitle, showID) {
   return result.rows.length > 0 ? result.rows[0] : null
 }
 
-async function getEpisodeById(episodeID) {
+async function getEpisodeById(episodeID, userID = null) {
   const queryText = `SELECT episodes.*, shows.profile_img_link AS profile, shows.name AS show_name
-                     FROM episodes LEFT JOIN shows ON episodes.show_id = shows.id 
-                     WHERE episodes.id = $1`
-  const result = await poolQuery(queryText, [episodeID])
+                     FROM episodes LEFT JOIN shows ON episodes.show_id = shows.id
+                     WHERE episodes.id = $1 AND (shows.owner_id IS NULL OR shows.owner_id = $2)`
+  const result = await poolQuery(queryText, [episodeID, userID])
   return result.rows.length > 0 ? result.rows[0] : null
 }
 
@@ -63,10 +66,10 @@ async function addEpisode (newEpisode) {
 
   try {
     await client.query('BEGIN')
-    const queryText = `INSERT INTO episodes(id, title, description, audio_link, date_added, date_updated,  
+    const queryText = `INSERT INTO episodes(id, title, description, audio_link, date_added, date_updated,
     duration, show_id)
      VALUES($1, $2, $3, $4, $5, $6, $7, $8)`
-    const values = [uuidv4(), newEpisode.title, newEpisode.description, newEpisode.audio_link, 
+    const values = [uuidv4(), newEpisode.title, newEpisode.description, newEpisode.audio_link,
       newEpisode.date_added, newEpisode.date_added, newEpisode.duration, newEpisode.show_id
     ]
     const result = await client.query(queryText, values)
@@ -88,7 +91,7 @@ async function updateEpisode (episodeID, updates) {
     for (let key of updateKeys) {
       const queryText = `UPDATE episodes SET ${key} = $1 WHERE id = $2`
       const values = [updates[key], episodeID]
-      const result = await client.query(queryText, values) 
+      const result = await client.query(queryText, values)
     }
     await client.query('COMMIT')
     const changedEp = await getEpisodeById(episodeID)

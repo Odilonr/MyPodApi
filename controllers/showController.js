@@ -4,7 +4,7 @@ import { getEpisodesByShow } from '../queries/episodeQueries.js';
 
 async function getAllShowsController (req, res) {
   const type = req.query.type
-  const allShows = await getShows(type)
+  const allShows = await getShows(type, req.user)
   if (!allShows) {
     return res.status(204).json({'message':'No Shows Found'})
   }
@@ -64,7 +64,7 @@ async function deleteShowController (req, res) {
 
 async function getShowController (req, res) {
   const id = req.params.id
-  const show = await getShowById(req.params.id)
+  const show = await getShowById(req.params.id, req.user)
   if (!show) {
     throw createError(404, "Show not found")
   }
@@ -73,7 +73,7 @@ async function getShowController (req, res) {
 
 
 async function getShowEpisodesController (req, res) {
-  const show = await getShowById(req.params.id)
+  const show = await getShowById(req.params.id, req.user)
   if (!show) {
     throw createError(404, "Show not found")
   }

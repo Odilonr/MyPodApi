@@ -1,9 +1,10 @@
 import express from 'express'
-import {getAllEpisodesController, addEpisodeController, updateEpisodeController, 
+import {getAllEpisodesController, addEpisodeController, updateEpisodeController,
   deleteEpisodeController, getEpisodeController, getCurrentPlayTime, updateCurrentEpTime, audioEpController
  } from '../controllers/episodeController.js'
 import { asynHandler } from '../middleware/errorHandler.js'
 import { verifyJWT } from '../middleware/verifyJWT.js'
+import { optionalJWT } from '../middleware/optionalJWT.js'
 import { validateId } from '../middleware/validateId.js'
 import { requireAdmin } from '../middleware/requireAdmin.js'
 
@@ -13,12 +14,12 @@ router.param('id', validateId)
 
 const adminOnly = [verifyJWT, requireAdmin]
 
-router.get('/', getAllEpisodesController)
+router.get('/', optionalJWT, getAllEpisodesController)
 router.post('/', adminOnly, asynHandler(addEpisodeController))
 router.put('/:id', adminOnly, asynHandler(updateEpisodeController))
 router.delete('/:id', adminOnly, asynHandler(deleteEpisodeController))
 
-router.get('/ep/:id', asynHandler(getEpisodeController))
+router.get('/ep/:id', optionalJWT, asynHandler(getEpisodeController))
 
 router.get('/:id/audio', asynHandler(audioEpController))
 router.get('/:id/timestamp', verifyJWT, asynHandler(getCurrentPlayTime))

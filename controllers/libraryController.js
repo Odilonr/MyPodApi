@@ -6,8 +6,8 @@ import { getRecentEpisodes, getFavoriteEpisodes, addFavorite, removeFavorite, ge
 
 const playlistNameSchema = z.string().trim().min(1).max(60)
 
-async function requireEpisode (episodeID) {
-  if (!(await getEpisodeById(episodeID))) {
+async function requireEpisode (req) {
+  if (!(await getEpisodeById(req.params.episodeId, req.user))) {
     throw createError(404, 'Episode not found')
   }
 }
@@ -29,7 +29,7 @@ async function favoritesController (req, res) {
 }
 
 async function addFavoriteController (req, res) {
-  await requireEpisode(req.params.episodeId)
+  await requireEpisode(req)
   await addFavorite(req.user, req.params.episodeId)
   res.sendStatus(204)
 }
@@ -69,7 +69,7 @@ async function deletePlaylistController (req, res) {
 
 async function addPlaylistEpisodeController (req, res) {
   const playlist = await requireOwnPlaylist(req)
-  await requireEpisode(req.params.episodeId)
+  await requireEpisode(req)
   await addPlaylistEpisode(playlist.id, req.params.episodeId)
   res.sendStatus(204)
 }
