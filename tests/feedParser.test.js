@@ -77,6 +77,35 @@ describe('parseFeed', () => {
     expect(episodes.map((episode) => episode.title)).toEqual(['Episode one'])
   })
 
+  it('marks an audio episode as audio', () => {
+    const { episodes } = parseFeed(feed(`<title>S</title>${item()}`))
+    expect(episodes[0].mediaType).toBe('audio')
+  })
+
+  it.each([
+    ['a video type', 'https://cdn.example.com/one.mp4', 'video/mp4'],
+    ['another video type', 'https://cdn.example.com/one', 'video/x-m4v'],
+    ['a video file with no type', 'https://cdn.example.com/one.mp4?token=1', ''],
+    ['a generic type on a video file', 'https://cdn.example.com/one.m4v', 'application/octet-stream']
+  ])('keeps a video episode with %s', (_, url, type) => {
+    const { episodes } = parseFeed(feed(`<title>S</title>
+      <item><title>Video</title><enclosure url="${url}" type="${type}" /></item>`))
+    expect(episodes).toEqual([expect.objectContaining({ title: 'Video', audioUrl: url, mediaType: 'video' })])
+  })
+
+  it('accepts a feed that only has video episodes', () => {
+    const { episodes } = parseFeed(feed(`<title>S</title>
+      <item><title>Long video</title><enclosure url="https://cdn.example.com/one.mp4" type="video/mp4" />
+      <itunes:duration>01:00:00</itunes:duration></item>`))
+    expect(episodes[0].duration).toBe(3600)
+  })
+
+  it('skips an enclosure that is neither audio nor video', () => {
+    const { episodes } = parseFeed(feed(`<title>S</title>
+      <item><title>PDF</title><enclosure url="https://cdn.example.com/notes.pdf" type="application/pdf" /></item>${item()}`))
+    expect(episodes.map((episode) => episode.title)).toEqual(['Episode one'])
+  })
+
   it('skips an episode with no audio', () => {
     const { episodes } = parseFeed(feed(`<title>S</title><item><title>Text only</title></item>${item()}`))
     expect(episodes).toHaveLength(1)

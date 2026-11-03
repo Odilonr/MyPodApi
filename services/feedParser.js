@@ -9,6 +9,7 @@ const MAX_DESCRIPTION = 5000
 const MAX_LINK = 2000
 const MAX_INTEGER = 2147483647
 const DEFAULT_CATEGORY = 'Uncategorized'
+const VIDEO_FILE = /\.(mp4|m4v|mov|webm)$/i
 
 class FeedParseError extends Error {
   constructor (message = 'This address is not a podcast feed') {
@@ -67,12 +68,23 @@ function parseDate (value) {
   return Number.isNaN(date.getTime()) ? new Date() : date
 }
 
+// Many feeds give a generic type or none, so the file extension decides then.
+function parseMediaType (type, url) {
+  if (type.startsWith('video/')) return 'video'
+  if (type.startsWith('audio/')) return 'audio'
+  const isGeneric = type === '' || type === 'application/octet-stream' || type === 'binary/octet-stream'
+  if (!isGeneric) return null
+  return VIDEO_FILE.test(new URL(url).pathname) ? 'video' : 'audio'
+}
+
 function parseEpisode (item) {
   const enclosure = first(item.enclosure)
-  if (String(enclosure?.['@_type'] ?? '').startsWith('video/')) return null
   const audioUrl = webLink(enclosure?.['@_url'])
   if (!audioUrl) return null
+  const mediaType = parseMediaType(String(enclosure['@_type'] ?? '').toLowerCase().trim(), audioUrl)
+  if (!mediaType) return null
   return {
+    mediaType,
     externalId: rawText(item.guid).trim().slice(0, MAX_LINK) || audioUrl,
     title: cleanText(rawText(item.title), MAX_TITLE) || 'Untitled episode',
     description: cleanText(rawText(item.description) || rawText(item['itunes:summary']), MAX_DESCRIPTION),

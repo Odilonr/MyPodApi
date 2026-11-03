@@ -28,11 +28,11 @@ async function insertEpisodes (client, showID, episodes) {
   for (const episode of episodes) {
     const date = localTime(episode.publishedAt)
     const result = await client.query(
-      `INSERT INTO episodes(id, title, description, audio_link, date_added, date_updated, duration, show_id, external_id)
-       VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      `INSERT INTO episodes(id, title, description, audio_link, date_added, date_updated, duration, show_id, external_id, media_type)
+       VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        ON CONFLICT (show_id, external_id) WHERE external_id IS NOT NULL DO NOTHING
        RETURNING id`,
-      [uuidv4(), episode.title, episode.description, episode.audioUrl, date, date, episode.duration, showID, episode.externalId]
+      [uuidv4(), episode.title, episode.description, episode.audioUrl, date, date, episode.duration, showID, episode.externalId, episode.mediaType]
     )
     added += result.rows.length
   }

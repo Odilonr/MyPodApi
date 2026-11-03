@@ -99,6 +99,15 @@ describe('importing', () => {
     expect(episodes.body.map((episode) => episode.audio_link).sort()).toEqual(['https://cdn.example.com/a.mp3', 'https://cdn.example.com/b.mp3'])
   })
 
+  it('saves whether each episode is audio or video', async () => {
+    safeFetchText.mockResolvedValue(xml(`${item('a')}<item><title>Video</title><guid>v</guid>
+      <enclosure url="https://cdn.example.com/v.mp4" type="video/mp4" /></item>`))
+    const show = await importFeed()
+    const episodes = await as(alice, request(app).get(`/shows/${show.id}/episodes`)).expect(200)
+    const types = Object.fromEntries(episodes.body.map((episode) => [episode.title, episode.media_type]))
+    expect(types).toEqual({ 'Episode a': 'audio', Video: 'video' })
+  })
+
   it('uses the name and category the user chose', async () => {
     const show = await importFeed(alice, { url: FEED_URL, name: '  My name  ', category: 'Morning' })
     expect(show.name).toBe('My name')
